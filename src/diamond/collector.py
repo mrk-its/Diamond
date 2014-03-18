@@ -42,12 +42,12 @@ def get_hostname(config, method=None):
     # case insensitive method
     method = method.lower()
 
-    if method in get_hostname.cached_results:
-        return get_hostname.cached_results[method]
-
     reverse = method.endswith('_rev')
     if reverse:
         method = method[:-4]
+
+    if (method, reverse) in get_hostname.cached_results:
+        return get_hostname.cached_results[(method, reverse)]
 
     if method == 'smart':
         hostname = get_hostname(config, 'fqdn_short')
@@ -86,7 +86,7 @@ def get_hostname(config, method=None):
     if reverse:
         hostname = reverse_hostname(hostname)
 
-    get_hostname.cached_results[method] = hostname
+    get_hostname.cached_results[(method, reverse)] = hostname
     return hostname
 
 get_hostname.cached_results = {}
