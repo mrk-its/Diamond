@@ -23,6 +23,8 @@ if platform.architecture()[0] == '64bit':
 else:
     MAX_COUNTER = (2 ** 32) - 1
 
+def reverse_hostname(hostname):
+    return hostname and '.'.join(reversed(hostname.split('.')))
 
 def get_hostname(config, method=None):
     """
@@ -43,66 +45,49 @@ def get_hostname(config, method=None):
     if method in get_hostname.cached_results:
         return get_hostname.cached_results[method]
 
+    reverse = method.endswith('_rev')
+    if reverse:
+        method = method[:-4]
+
     if method == 'smart':
         hostname = get_hostname(config, 'fqdn_short')
-        if hostname != 'localhost':
-            get_hostname.cached_results[method] = hostname
-            return hostname
-        hostname = get_hostname(config, 'hostname_short')
-        get_hostname.cached_results[method] = hostname
-        return hostname
+        if hostname == 'localhost':
+            hostname = get_hostname(config, 'hostname_short')
 
-    if method == 'fqdn_short':
+    elif method == 'fqdn_short':
         hostname = socket.getfqdn().split('.')[0]
-        get_hostname.cached_results[method] = hostname
-        return hostname
 
-    if method == 'fqdn':
+    elif method == 'fqdn':
         hostname = socket.getfqdn().replace('.', '_')
-        get_hostname.cached_results[method] = hostname
-        return hostname
 
-    if method == 'fqdn_rev':
-        hostname = socket.getfqdn().split('.')
-        hostname.reverse()
-        hostname = '.'.join(hostname)
-        get_hostname.cached_results[method] = hostname
-        return hostname
-
-    if method == 'uname_short':
+    elif method == 'uname_short':
         hostname = os.uname()[1].split('.')[0]
-        get_hostname.cached_results[method] = hostname
-        return hostname
 
-    if method == 'uname_rev':
+    elif method == 'uname':
         hostname = os.uname()[1].split('.')
-        hostname.reverse()
-        hostname = '.'.join(hostname)
-        get_hostname.cached_results[method] = hostname
-        return hostname
 
-    if method == 'hostname':
+    elif method == 'hostname':
         hostname = socket.gethostname()
-        get_hostname.cached_results[method] = hostname
-        return hostname
 
-    if method == 'hostname_short':
+    elif method == 'hostname_short':
         hostname = socket.gethostname().split('.')[0]
-        get_hostname.cached_results[method] = hostname
-        return hostname
 
-    if method == 'hostname_rev':
-        hostname = socket.gethostname().split('.')
-        hostname.reverse()
-        hostname = '.'.join(hostname)
-        get_hostname.cached_results[method] = hostname
-        return hostname
+    elif method == 'hostname_cmd':
+        import subprocess
+        hostname_cmd = config['hostname_cmd']
+        hostname = subprocess.check_output(hostname_cmd, shell=True).strip()
 
-    if method == 'none':
-        get_hostname.cached_results[method] = None
-        return None
+    elif method == 'none':
+        hostname = None
 
-    raise NotImplementedError(config['hostname_method'])
+    else:
+        raise NotImplementedError(method)
+
+    if reverse:
+        hostname = reverse_hostname(hostname)
+
+    get_hostname.cached_results[method] = hostname
+    return hostname
 
 get_hostname.cached_results = {}
 
